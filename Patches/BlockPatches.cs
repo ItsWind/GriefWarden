@@ -39,23 +39,32 @@ public class BlockOnBlockExplodedPatch {
 public class ItemChiselInteractPatch {
     [HarmonyPrefix]
     public static void Prefix(ItemSlot slot, EntityAgent byEntity, BlockSelection blockSel, out PatchState __state) {
+        __state = new PatchState();
+
+        if (blockSel == null)
+            return;
+
         BlockPos pos = blockSel.Position;
         Block block = byEntity.World.BlockAccessor.GetBlock(pos);
 
-        __state = new PatchState();
+        __state.wasMicroBlock = block is BlockMicroBlock;
         __state.oldBlockID = block.Id;
         __state.oldBlock = block.ToString();
     }
 
     [HarmonyPostfix]
     public static void Postfix(ItemSlot slot, EntityAgent byEntity, BlockSelection blockSel, PatchState __state) {
-        if (__state.oldBlockID == 648)
+        if (blockSel == null || __state.oldBlock == null)
+            return;
+
+        // Only log the conversion into a chiseled block, not every chisel hit after
+        if (__state.wasMicroBlock)
             return;
 
         BlockPos pos = blockSel.Position;
         Block block = byEntity.World.BlockAccessor.GetBlock(pos);
 
-        if (block.Id != 648)
+        if (block is not BlockMicroBlock)
             return;
 
         EntityPlayer? entityPlayer = byEntity as EntityPlayer;
@@ -71,6 +80,7 @@ public class ItemChiselInteractPatch {
     public class PatchState {
         public int oldBlockID;
         public string oldBlock;
+        public bool wasMicroBlock;
     }
 }
 
